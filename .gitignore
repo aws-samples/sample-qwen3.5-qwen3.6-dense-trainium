@@ -1,0 +1,56 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg-info/
+dist/
+build/
+.eggs/
+
+# Virtual environments
+venv/
+.venv/
+env/
+
+# Neuron compile cache
+compile_cache/
+neuron_compile_cache/
+*.neff
+
+# NKI kernel artifacts + metrics that the runtime drops in the process CWD
+# (e.g. when running the tests from the repo root). The kernel blobs land in
+# 17-hex-character wrapper directories, hence the character-class run below —
+# it is anchored to the repo root and deliberately length-exact so it cannot
+# swallow a real directory (`docs/` also starts with a hex character).
+*.colz
+global_metric_store.json
+/[0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f]/
+
+# Model weights (never commit these)
+*.bin
+*.safetensors
+*.gguf
+models/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+nohup.out
+
+# Misc
+.env
+*.tmp
