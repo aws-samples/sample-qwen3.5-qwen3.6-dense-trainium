@@ -1,5 +1,5 @@
 # Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
-# SPDX-License-Identifier: Apache-2.0
+# SPDX-License-Identifier: MIT-0
 """Offline oracle tests for DeltaNet TP head sharding (no Neuron device).
 
 Validates, in pure PyTorch on CPU:

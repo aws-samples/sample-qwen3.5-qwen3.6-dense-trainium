@@ -1,5 +1,5 @@
 # Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
-# SPDX-License-Identifier: Apache-2.0
+# SPDX-License-Identifier: MIT-0
 """Wrapper that applies the Qwen3.5/3.6 registry patch and execs `vllm serve`.
 
 Configured entirely via env vars to keep the launcher shell simple.
@@ -7,7 +7,7 @@ Called from `serve.sh`.
 
 ENV VARS
 --------
-- MODEL: path to local HF weights (default: /root/models/Qwen3.5-4B).
+- MODEL: path to local HF weights (default: ~/models/Qwen3.5-4B).
   Any Qwen3.5/3.6 DENSE checkpoint works — 4B, 9B, 27B (config-driven).
 - TP: tensor parallel size (default: 4 — the verified configuration).
   Constraints (validated at model init with clear errors):
@@ -28,7 +28,11 @@ ENV VARS
   MAX_NUM_SEQS > 1 (see docs/implementation-notes.md).
 - KV_CACHE_DTYPE: "auto" (BF16, verified) or "fp8" (code path present for
   GQA layers, not verified end-to-end).
+- HOST: HTTP bind address (default: 127.0.0.1). Keep the loopback default for
+  local testing. See README.md before binding to an external interface.
 - PORT: HTTP port (default: 8000).
+- VLLM_API_KEY: optional API key for authenticated requests. Supply it through
+  a protected environment variable; never hardcode or log it.
 """
 
 import json
@@ -49,18 +53,38 @@ def main() -> int:
     install_post_plugin_hook()
 
     # 2. Build sys.argv from env vars.
-    model = os.environ.get("MODEL", "/root/models/Qwen3.5-4B")
+    model = os.path.abspath(
+        os.path.expanduser(os.environ.get("MODEL", "~/models/Qwen3.5-4B"))
+    )
     tp = os.environ.get("TP", "4")
     max_len = int(os.environ.get("MAX_LEN", "4096"))
+    host = os.environ.get("HOST", "127.0.0.1").strip()
     port = os.environ.get("PORT", "8000")
+    api_key = os.environ.get("VLLM_API_KEY", "")
     bucket = os.environ.get("BUCKET", "").strip()
     max_num_seqs = int(os.environ.get("MAX_NUM_SEQS", "4"))
     kv_cache_dtype = os.environ.get("KV_CACHE_DTYPE", "auto").strip()
+
+    if not os.path.isdir(model):
+        raise FileNotFoundError(
+            f"Local model directory does not exist: {model}. "
+            "Download the checkpoint first or set MODEL to its local path."
+        )
 
     if max_len <= 0:
         raise ValueError(f"MAX_LEN must be positive, got {max_len}")
     if max_num_seqs <= 0:
         raise ValueError(f"MAX_NUM_SEQS must be positive, got {max_num_seqs}")
+    if not host:
+        raise ValueError("HOST must not be empty")
+
+    if host in {"0.0.0.0", "::", "[::]"}:
+        print(
+            "[serve] WARNING: vLLM is binding to all network interfaces. "
+            "Confirm the Security Group, VPC, and authentication controls "
+            "documented in README.md are in place.",
+            file=sys.stderr,
+        )
 
     if bucket:
         try:
@@ -138,6 +162,12 @@ def main() -> int:
         "--no-enable-chunked-prefill",
         "--no-enable-prefix-caching",
         "--kv-cache-dtype", kv_cache_dtype,
+        # SECURITY: 127.0.0.1 is the safe default for local testing. Binding
+        # to 0.0.0.0 or :: exposes the listener to reachable interfaces. Do
+        # not enable an external bind without the controls in README.md,
+        # including restricted Security Group sources, private networking,
+        # and/or authentication.
+        "--host", host,
         "--port", str(port),
         # Zero limits keep requests text-only. They do not suppress Neuron's
         # vision auto-configuration, so addl above also supplies a bounded
@@ -146,9 +176,17 @@ def main() -> int:
         "--additional-config", json.dumps(addl),
     ]
 
+    if api_key:
+        sys.argv.extend(["--api-key", api_key])
+
     print("[serve] launching vllm with argv:")
-    for arg in sys.argv:
-        print(f"  {arg}")
+    for index, arg in enumerate(sys.argv):
+        display_arg = (
+            "<redacted>"
+            if index > 0 and sys.argv[index - 1] == "--api-key"
+            else arg
+        )
+        print(f"  {display_arg}")
 
     from vllm.entrypoints.cli.main import main as vllm_main
 

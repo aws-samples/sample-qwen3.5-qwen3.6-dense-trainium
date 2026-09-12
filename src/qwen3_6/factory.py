@@ -1,5 +1,5 @@
 # Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
-# SPDX-License-Identifier: Apache-2.0
+# SPDX-License-Identifier: MIT-0
 """Factory for the Qwen3.5/3.6 dense hybrid model, selected by platform/config.
 
 Validates the config and hands off to the BF16 implementation, which reads

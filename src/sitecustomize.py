@@ -1,5 +1,5 @@
 # Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
-# SPDX-License-Identifier: Apache-2.0
+# SPDX-License-Identifier: MIT-0
 """sitecustomize.py — auto-loaded on Python interpreter startup.
 
 Python imports `sitecustomize` automatically if it's anywhere on

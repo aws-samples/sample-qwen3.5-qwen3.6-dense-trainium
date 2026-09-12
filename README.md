@@ -43,7 +43,11 @@ inference (no training).
 - **HF arch class:** `Qwen3_5ForConditionalGeneration` for both 3.5 and 3.6
   (the class name is shared across the version bump), so one registry slot
   serves the family
-- **License:** Apache 2.0 (code and weights; see NOTICE)
+- **License:** Except for files explicitly marked `Apache-2.0`, this
+  repository's code and documentation are licensed under MIT-0. Bundled or
+  adapted files marked `Apache-2.0`, and the separately downloaded model
+  weights, retain Apache License 2.0. See `LICENSE`,
+  `LICENSE-APACHE-2.0`, `NOTICE`, and `THIRD-PARTY-LICENSES`.
 
 ## Validation Summary
 
@@ -103,10 +107,18 @@ Throughput / TTFT benchmarking was out of scope (correctness-first); see
 
 ```bash
 # 1. Weights (never commit these)
-hf download Qwen/Qwen3.5-4B  --local-dir /root/models/Qwen3.5-4B
+hf download Qwen/Qwen3.5-4B --local-dir "$HOME/models/Qwen3.5-4B"
 # ... or Qwen/Qwen3.5-9B / Qwen/Qwen3.5-27B / Qwen/Qwen3.6-27B
 
-# 2. A vllm-neuron environment at the pinned version (see Compatibility).
+# 2. Activate the pinned vllm-neuron environment (see Compatibility).
+#    On an AWS Neuron image that provides the validated environment:
+source /opt/aws_neuronx_venv_pytorch_inference_vllm_0_24_0_1_1_0/bin/activate
+#    If your image uses a different path, activate an environment containing
+#    the exact versions in the Compatibility Matrix instead. To create one,
+#    follow the installation instructions for the pinned vLLM-Neuron release:
+#    https://github.com/vllm-project/vllm-neuron/tree/v0.24.0.1.1.0
+#    QWEN36_DISABLE_AUTO_REGISTER=1 is a debugging-only escape hatch; do not
+#    set it for online or offline inference because workers need registration.
 
 # 3. REQUIRED (both online and offline): apply the two core-file overrides
 #    (state-slot lifecycle + aliasing fix). Without them, batched inference
@@ -133,7 +145,7 @@ correctness requirement. Set the variable yourself to override the detection.
 ./src/serve.sh
 
 # 27B
-MODEL=/root/models/Qwen3.5-27B TP=4 ./src/serve.sh
+MODEL="$HOME/models/Qwen3.5-27B" TP=4 ./src/serve.sh
 
 # quick-iteration smoke config (small buckets = fast compile)
 MAX_LEN=256 BUCKET=256 MAX_NUM_SEQS=4 ./src/serve.sh
@@ -154,12 +166,80 @@ launcher enforces this rather than letting DeltaNet see a split prompt.
 auto-registers the architecture in every Python process (including vLLM worker
 subprocesses).
 
+#### Secure access to the vLLM API
+
+A vLLM HTTP endpoint can serve requests from any client that can reach its
+listening address. Never expose an unauthenticated vLLM port directly to the
+public internet. A request URL containing `localhost` only identifies where
+that particular client connects; it does not prove that the server itself is
+bound only to the loopback interface. Verify both the vLLM bind address and the
+EC2 network controls.
+
+Prefer **Option 2 or Option 3**, and combine controls where practical for
+defense in depth.
+
+1. **AWS Security Group filtering — demonstration only; do not enable as-is.**
+   For a controlled customer demonstration, an inbound rule can allow TCP port
+   8000 only from explicitly trusted sources. A rule that permits
+   `0.0.0.0/0` or `::/0` is not acceptable. Any Security Group or
+   infrastructure-as-code lines that expose this port must remain commented
+   out by default, for example:
+
+   ```text
+   # DEMO ONLY — leave commented until the controls below are in place.
+   # Inbound TCP 8000 from <TRUSTED_SOURCE_IP>/32
+   ```
+
+   Uncomment the equivalent rule only after applying appropriate controls,
+   such as replacing the placeholder with narrowly restricted source IP
+   addresses, running the instance in a private VPC with no direct public
+   route, and/or adding authentication. Remove temporary demo access when it
+   is no longer needed. Security Group exposure alone is not the recommended
+   way to protect a public production endpoint.
+
+2. **vLLM API-key authentication — secure approach for authorized clients.**
+   The bundled launcher maps `VLLM_API_KEY` to vLLM's `--api-key` argument.
+   Supply the key at runtime rather than adding raw launcher arguments or
+   placing it in a script. For an interactive local launch:
+
+   ```bash
+   printf "vLLM API key: "
+   IFS= read -r -s VLLM_API_KEY && printf '\n'
+   export VLLM_API_KEY
+   ./src/serve.sh
+   ```
+
+   Clients must then send the key with each inference request:
+
+   ```bash
+   -H "Authorization: Bearer ${VLLM_API_KEY}"
+   ```
+
+   Store the key in a managed secret store or protected environment variable;
+   do not commit it to this repository or place it directly in scripts. Rotate
+   it when access changes, use TLS for any network connection so the key is not
+   sent in cleartext, and continue to restrict network reachability.
+
+3. **Bind vLLM to localhost — secure approach for local testing.**
+   The launcher defaults to the loopback interface. The explicit equivalent
+   is:
+
+   ```bash
+   HOST=127.0.0.1 ./src/serve.sh
+   ```
+
+   Do not set `HOST=0.0.0.0` for this mode. Run the client on the same instance,
+   or use a separately secured and authenticated tunnel if remote access is
+   required. The local `curl` example below assumes that the server has been
+   bound to `127.0.0.1`; add the `Authorization` header shown above if API-key
+   authentication is also enabled.
+
 Query the running server:
 
 ```bash
 curl -s http://localhost:8000/v1/completions \
   -H "Content-Type: application/json" \
-  -d '{"model":"/root/models/Qwen3.5-4B","prompt":"The capital of France is","max_tokens":20,"temperature":0}'
+  -d "{\"model\":\"${HOME}/models/Qwen3.5-4B\",\"prompt\":\"The capital of France is\",\"max_tokens\":20,\"temperature\":0}"
 ```
 
 ### Offline — batch inference (`LLM.generate()`)
@@ -170,7 +250,7 @@ state-slot machinery as online serving):
 
 ```bash
 PYTHONPATH=src python src/run_offline_example.py \
-    --model-checkpoint /root/models/Qwen3.5-4B --tp 4
+    --model-checkpoint "$HOME/models/Qwen3.5-4B" --tp 4
 ```
 
 Import `qwen3_6` before constructing the `LLM` so the architecture is
@@ -214,7 +294,7 @@ Target stack:
 |---|---|
 | vllm-neuron plugin | package `0.24.0.1.1.0`; public source pin tag [`v0.24.0.1.1.0`](https://github.com/vllm-project/vllm-neuron/tree/v0.24.0.1.1.0) on `release-0.24.0.1.1.0` |
 | vllm | `0.24.0` |
-| libtorch-neuronx-lite | `2.11.0.1.0.1284` (ships the fx passes / NKI HOP) |
+| libtorch-neuronx-lite | base `2.11.0.1.0.1284`; validated wheel `2.11.0.1.0.1284+f49d8626` (ships the fx passes / NKI HOP) |
 | transformers | `5.15.0` (the plugin requires `>=5.5.1,<6`) |
 | torch / torch-xla | `2.11.0` / `2.11.0` |
 | neuronx-cc | `2.27.5334.0` |
@@ -254,11 +334,11 @@ python test/test_deltanet_tp_sharding.py
 # 2. On-device batched-consistency (churn) test — pass/fail exit code.
 #    Run per model; every published dense checkpoint is validated at TP=4.
 for M in Qwen3.5-4B Qwen3.5-9B Qwen3.5-27B Qwen3.6-27B; do
-  PYTHONPATH=src python test/batched_consistency_test.py --model /root/models/$M --tp 4
+  PYTHONPATH=src python test/batched_consistency_test.py --model "$HOME/models/$M" --tp 4
 done
 
 # 3. Concurrent-request check against a running server (start it first with
-#    MODEL=/root/models/Qwen3.5-4B TP=4 MAX_LEN=256 BUCKET=256 ./src/serve.sh).
+#    MODEL="$HOME/models/Qwen3.5-4B" TP=4 MAX_LEN=256 BUCKET=256 ./src/serve.sh).
 ./test/concurrent_api_test.sh 8000
 ```
 
@@ -288,4 +368,4 @@ obvious optimization target.
 | `overrides/` | **required** core-file replacements + `apply.sh` + rationale |
 | `docs/` | implementation notes (the three fixes) + known boundaries |
 | `test/` | CPU oracle suite + on-device consistency tests |
-| `LICENSE`, `NOTICE`, `THIRD-PARTY-LICENSES` | Apache 2.0 + third-party attribution |
+| `LICENSE`, `LICENSE-APACHE-2.0`, `NOTICE`, `THIRD-PARTY-LICENSES` | MIT-0 project license + Apache-2.0 text and third-party attribution |

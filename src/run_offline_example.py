@@ -1,5 +1,5 @@
 # Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
-# SPDX-License-Identifier: Apache-2.0
+# SPDX-License-Identifier: MIT-0
 """Offline (LLM.generate) example for the Qwen3.5/3.6 dense family.
 
 Submits 4 prompts SIMULTANEOUSLY so they decode in the same continuous
@@ -10,7 +10,7 @@ Usage (with src/ on PYTHONPATH so the registry patch applies, and the
 overrides/ files in place — see overrides/README.md):
 
     PYTHONPATH=src python src/run_offline_example.py \
-        --model-checkpoint /root/models/Qwen3.5-4B [--tp 4] [--kv-cache-dtype auto]
+        --model-checkpoint ~/models/Qwen3.5-4B [--tp 4] [--kv-cache-dtype auto]
 """
 
 import argparse
@@ -37,7 +37,7 @@ def main():
     parser.add_argument(
         "--model-checkpoint",
         type=str,
-        default="/root/models/Qwen3.5-4B",
+        default="~/models/Qwen3.5-4B",
         help="Path to a Qwen3.5/3.6 dense HF checkpoint (4B/9B/27B)",
     )
     parser.add_argument(
@@ -51,6 +51,15 @@ def main():
         help="KV cache dtype ('auto' = BF16, verified; 'fp8' untested e2e)",
     )
     args = parser.parse_args()
+    args.model_checkpoint = os.path.abspath(
+        os.path.expanduser(args.model_checkpoint)
+    )
+    if not os.path.isdir(args.model_checkpoint):
+        parser.error(
+            "local model directory does not exist: "
+            f"{args.model_checkpoint}. Download the checkpoint first or pass "
+            "--model-checkpoint with the correct path."
+        )
 
     llm = LLM(
         model=args.model_checkpoint,

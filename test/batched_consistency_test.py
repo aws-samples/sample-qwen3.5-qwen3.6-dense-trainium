@@ -1,5 +1,5 @@
 # Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
-# SPDX-License-Identifier: Apache-2.0
+# SPDX-License-Identifier: MIT-0
 """Batched-consistency ("churn") test — on-device, pass/fail.
 
 Verifies the continuous-batching state-slot fix end-to-end
@@ -19,7 +19,7 @@ completed with fibonacci code). Exit code 0 = all token-exact, 1 = mismatch.
 Usage (device required; overrides/ applied per overrides/README.md):
 
     PYTHONPATH=src python test/batched_consistency_test.py \
-        [--model /root/models/Qwen3.5-4B] [--tp 4]
+        [--model ~/models/Qwen3.5-4B] [--tp 4]
 """
 
 import argparse
@@ -42,9 +42,16 @@ from vllm import LLM, SamplingParams
 
 def main() -> int:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--model", default="/root/models/Qwen3.5-4B")
+    parser.add_argument("--model", default="~/models/Qwen3.5-4B")
     parser.add_argument("--tp", type=int, default=4)
     args = parser.parse_args()
+    args.model = os.path.abspath(os.path.expanduser(args.model))
+    if not os.path.isdir(args.model):
+        parser.error(
+            "local model directory does not exist: "
+            f"{args.model}. Download the checkpoint first or pass --model "
+            "with the correct path."
+        )
 
     llm = LLM(
         model=args.model,

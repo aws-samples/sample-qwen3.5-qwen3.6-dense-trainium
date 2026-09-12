@@ -1,17 +1,27 @@
-NOTICE — Apache License 2.0
+NOTICE — Apache License 2.0 components
 
-This contribution is licensed under the Apache License, Version 2.0.
-See the LICENSE file or https://www.apache.org/licenses/LICENSE-2.0
+Except for files explicitly marked `Apache-2.0`, this repository's code and
+documentation are licensed under the MIT No Attribution License in LICENSE.
+The components identified below retain the Apache License, Version 2.0; see
+LICENSE-APACHE-2.0 for the full license text.
 
-Included third-party components (full detail in THIRD-PARTY-LICENSES):
+Upstream vLLM-Neuron NOTICE attribution:
+
+Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+
+Apache-2.0 components (full detail in THIRD-PARTY-LICENSES):
+
+- `src/qwen3_6/model_bf16.py` follows and adapts structures and interfaces
+  from Apache-2.0 upstream implementations identified in that file and in
+  THIRD-PARTY-LICENSES.
 - The fused chunked GatedDeltaNet NKI kernel
-  (src/qwen3_6/nki_kernels/deltanet_fused.py) is derived from
-  aws-neuron/neuronx-distributed-inference pull request #152 and is
-  redistributed under Apache 2.0, kept near-verbatim (decorator removal,
-  bf16 I/O, and dead-code cleanup are noted in the file header).
-- The two files under overrides/ are full copies of vllm-neuron and
+  (`src/qwen3_6/nki_kernels/deltanet_fused.py`) is derived from
+  aws-neuron/neuronx-distributed-inference pull request #152 and is kept
+  near-verbatim. Local modifications are documented in the file header.
+- The two Python files under `overrides/` are full copies of vllm-neuron and
   libtorch-neuronx-lite source with small additive changes. See
-  THIRD-PARTY-LICENSES for their version pins and license markings.
-- The Qwen3.5 / Qwen3.6 model weights are © Alibaba, also released under
-  Apache 2.0 (weights are NOT included in this repository; download from
-  Hugging Face).
+  THIRD-PARTY-LICENSES for their version pins, modifications, and observed
+  license markings.
+- The Qwen3.5 and Qwen3.6 model weights are © Alibaba and released under
+  Apache License 2.0. The weights are not included in this repository and
+  must be downloaded separately from Hugging Face.

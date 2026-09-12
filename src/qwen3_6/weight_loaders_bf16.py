@@ -1,5 +1,5 @@
 # Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
-# SPDX-License-Identifier: Apache-2.0
+# SPDX-License-Identifier: MIT-0
 """Checkpoint-to-parameter name mapping for the Qwen3.5/3.6 dense BF16 format.
 
 Provides `build_weight_mappings(config, ...)` which returns a dict mapping

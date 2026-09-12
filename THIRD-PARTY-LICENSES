@@ -1,22 +1,25 @@
 THIRD-PARTY LICENSES
 
-This project bundles or adapts source from the third-party components listed
-below. Each is redistributed under its original license. This file is an
-attribution document required for redistribution; it does not alter the
-license of this project (see LICENSE) or of the components themselves.
+Except for files explicitly marked `Apache-2.0`, this repository's code and
+documentation are licensed under the MIT No Attribution License in LICENSE.
+This project also bundles or adapts source from the components listed below.
+Those files remain under their original Apache License 2.0 terms, as indicated
+by their SPDX headers. This attribution document does not alter the license of
+the project or of those components.
 
 The full text of the Apache License, Version 2.0 referenced throughout is in
-the LICENSE file at the root of this repository and at
+LICENSE-APACHE-2.0 at the root of this repository and at
 https://www.apache.org/licenses/LICENSE-2.0
 
 ===============================================================================
 1. vLLM-Neuron
 ===============================================================================
-Component      : NeuronModelRunner  (bundled, modified)
+Component      : NeuronModelRunner (bundled, modified)
 File in repo   : overrides/vllm_neuron/vllm/worker/neuron_model_runner.py
 Upstream       : https://github.com/vllm-project/vllm-neuron
 Package ver    : vllm-neuron 0.24.0.1.1.0 (vllm 0.24.0)
 Upstream ref   : tag v0.24.0.1.1.0 on branch release-0.24.0.1.1.0
+Copyright      : Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 Verification   : The installed wheel's copy of this file is byte-identical to
                  the file at that tag.
 License        : Apache License, Version 2.0 (the wheel ships LICENSE and
@@ -30,22 +33,19 @@ Modification   : Full copy of the upstream file with additions implementing a
 ===============================================================================
 2. libtorch-neuronx-lite
 ===============================================================================
-Component      : FX aliasing pass  (bundled, modified)
+Component      : FX aliasing pass (bundled, modified)
 File in repo   : overrides/libtorch_neuronx_lite/fx_passes/aliasing_pass.py
 Origin         : the libtorch-neuronx-lite distribution, at
                  libtorch_neuronx_lite/fx_passes/aliasing_pass.py
-Package ver    : libtorch-neuronx-lite 2.11.0.1.0.1284 (installed as a
-                 dependency of vllm-neuron 0.24.0.1.1.0)
+Package ver    : libtorch-neuronx-lite base version 2.11.0.1.0.1284;
+                 validated wheel metadata: 2.11.0.1.0.1284+f49d8626
+                 (installed as a dependency of vllm-neuron 0.24.0.1.1.0)
 Verification   : Diffed against the copy shipped in that wheel; identical
                  apart from the modification below.
-License        : The file carries `SPDX-License-Identifier: Apache-2.0`.
-                 NOTE: the containing distribution ships no package-level
-                 LICENSE file and its metadata declares the classifier
-                 "License :: Other/Proprietary License". The Apache-2.0
-                 marking on this individual file is the only license grant
-                 observed for it. Recorded here as found — confirm the
-                 redistribution basis with the upstream maintainers before
-                 relying on it.
+License        : Apache License, Version 2.0. Verified directly from the
+                 installed upstream source file, whose first line is
+                 `SPDX-License-Identifier: Apache-2.0`; that identifier is
+                 preserved in this modified copy.
 Modification   : Full copy of the upstream file with an added predicate
                  (`_is_data_attr_op`) that recognizes `_get_data_attr` as an
                  aliasing op, and one line adding that predicate to
@@ -55,7 +55,7 @@ Modification   : Full copy of the upstream file with an added predicate
 ===============================================================================
 3. AWS Neuron — neuronx-distributed-inference
 ===============================================================================
-Component      : Fused chunked GatedDeltaNet NKI kernel  (adapted, near-verbatim)
+Component      : Fused chunked GatedDeltaNet NKI kernel (adapted, near-verbatim)
 File in repo   : src/qwen3_6/nki_kernels/deltanet_fused.py
 Upstream       : https://github.com/aws-neuron/neuronx-distributed-inference
 Upstream ref   : pull request #152, file
@@ -69,7 +69,26 @@ Modification   : Kept near-verbatim. Local changes: q/k/v and output follow the
                  comment corrections. All noted in the file header.
 
 ===============================================================================
-4. Qwen3.5 / Qwen3.6 model weights  (NOT bundled)
+4. Qwen3.5 / Qwen3.6 vLLM-Neuron model integration
+===============================================================================
+Component      : Dense hybrid model implementation (adapted)
+File in repo   : src/qwen3_6/model_bf16.py
+Upstream       : https://github.com/vllm-project/vllm-neuron
+                 https://github.com/aws-neuron/neuronx-distributed-inference
+                 https://github.com/huggingface/transformers
+Upstream refs  : vllm-neuron qwen3_vl GQA/backbone/cache interfaces and
+                 llama3 dense MLP; AWS Neuron pull request #152 DeltaNet
+                 pipeline; Transformers Qwen3.5 reference semantics
+Copyright      : Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+License        : Apache License, Version 2.0
+Modification   : Implements the Qwen3.5/Qwen3.6 dense family for
+                 vLLM-Neuron, including partial RoPE, attention-output gating,
+                 TP-sharded GQA/MLP/DeltaNet layers, recurrent-state buffers,
+                 cache integration, and checkpoint loading. Adaptation details
+                 and implementation contracts are documented in the file.
+
+===============================================================================
+5. Qwen3.5 / Qwen3.6 model weights (NOT bundled)
 ===============================================================================
 Component      : Qwen3.5 / Qwen3.6 dense model weights
 File in repo   : none — weights are NOT included in this repository

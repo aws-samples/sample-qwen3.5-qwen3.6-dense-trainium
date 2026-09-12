@@ -1,5 +1,5 @@
 # Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
-# SPDX-License-Identifier: Apache-2.0
+# SPDX-License-Identifier: MIT-0
 """Qwen3.5 / Qwen3.6 dense (hybrid GatedDeltaNet + GQA) for vllm_neuron.
 
 Serves the Qwen3.5 and Qwen3.6 dense models on Trainium in both inference

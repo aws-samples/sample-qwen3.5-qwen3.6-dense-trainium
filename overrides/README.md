@@ -26,7 +26,8 @@ overrides/
 These replacements are based on:
 
 - **Installed packages:** vllm-neuron `0.24.0.1.1.0` with vllm `0.24.0`, and
-  libtorch-neuronx-lite `2.11.0.1.0.1284`.
+  libtorch-neuronx-lite base version `2.11.0.1.0.1284` (the validated wheel
+  reports `2.11.0.1.0.1284+f49d8626`; the suffix is local build metadata).
 - **Public source pin:** tag
   [`v0.24.0.1.1.0`](https://github.com/vllm-project/vllm-neuron/tree/v0.24.0.1.1.0)
   on branch `release-0.24.0.1.1.0`.
@@ -53,24 +54,18 @@ re-apply the changes manually (they are small and well-isolated).
 ./overrides/apply.sh
 ```
 
-The script resolves both install roots by importing the packages, refuses to
-create files that do not already exist (a missing target means your installed
-version does not match the pin above), and then clears the NEFF compile cache —
-**required after ANY change to these files**. 0.24 resolves the cache path
-through `libtorch_neuronx_lite.envs.get_neuron_compile_cache_dir()`
-(`NEURON_LIBTORCH_CACHE_ROOT`, then `VLLM_CACHE_ROOT`, then
-`~/.cache/neuron_libtorch`, falling back to `/tmp/neuron_compile_wdir_$USER` on
-NFS homes), so the script asks the library rather than guessing.
+The script first verifies both installed package base versions (accepting PEP
+440 local build metadata after `+`), all target paths, and the cache location. It stages both replacements and backups before
+mutation, restores the originals if replacement or cache cleanup fails, and
+preserves the validated cache root while deleting only its contents. The
+standard cache locations are accepted automatically; a custom absolute cache
+root requires `QWEN36_ALLOW_CUSTOM_CACHE_DELETE=1` after you verify the path.
+Missing targets are never created because they indicate that the active
+environment does not match the pinned stack.
 
-Equivalent by hand:
-
-```bash
-VN_ROOT=$(python -c "import vllm_neuron, os; print(os.path.dirname(vllm_neuron.__file__))")
-LT_ROOT=$(python -c "import libtorch_neuronx_lite as l, os; print(os.path.dirname(l.__file__))")
-cp overrides/vllm_neuron/vllm/worker/neuron_model_runner.py "$VN_ROOT/vllm/worker/neuron_model_runner.py"
-cp overrides/libtorch_neuronx_lite/fx_passes/aliasing_pass.py "$LT_ROOT/fx_passes/aliasing_pass.py"
-rm -rf "$(python -c 'import libtorch_neuronx_lite.envs as e; print(e.get_neuron_compile_cache_dir())')"
-```
+To inspect or reproduce the installation manually, read `apply.sh`; keeping the
+version checks, full preflight, rollback, and cache-path guard intact is
+strongly recommended.
 
 ## What each file changes and why
 

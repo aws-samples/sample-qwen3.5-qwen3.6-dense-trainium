@@ -1,5 +1,5 @@
 # Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
-# SPDX-License-Identifier: Apache-2.0
+# SPDX-License-Identifier: MIT-0
 """Register the Qwen3.5/3.6 dense family in vllm_neuron without forking it.
 
 Run before `vllm serve` (e.g. via `python -m qwen3_6.register` in the

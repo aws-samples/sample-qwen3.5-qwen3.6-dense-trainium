@@ -1,5 +1,5 @@
 # Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
-# SPDX-License-Identifier: Apache-2.0
+# SPDX-License-Identifier: MIT-0
 """Host-environment guards that must run before the Neuron worker starts.
 
 Not model code — these adjust process env vars for properties of the *host*
